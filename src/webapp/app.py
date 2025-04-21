@@ -1,10 +1,36 @@
 import streamlit as st
 import pandas as pd
-import joblib
 import numpy as np
-# 1. Load model and encoders
-model = joblib.load("model/customer_churn_model.pkl")
-encoders = joblib.load("model/encoders.pkl")  # dict: {column_name: LabelEncoder}
+import os
+import pickle
+
+# Must be the first Streamlit command
+st.set_page_config(page_title="AI Marketing Assistant", layout="centered")
+
+# Get the absolute path to the model files
+current_dir = os.path.dirname(os.path.abspath(__file__))
+model_dir = os.path.join(current_dir, '..', 'model')
+
+def load_model_and_encoders():
+    try:
+        model_path = os.path.join(model_dir, 'customer_churn_model.pkl')
+        encoders_path = os.path.join(model_dir, 'encoders.pkl')
+        
+        # Using plain pickle instead of joblib
+        with open(model_path, 'rb') as f:
+            model = pickle.load(f)
+        with open(encoders_path, 'rb') as f:
+            encoders = pickle.load(f)
+        return model, encoders
+    except FileNotFoundError:
+        st.error("Model files not found. Please check if the model files exist in the correct location.")
+        return None, None
+    except Exception as e:
+        st.error(f"Error loading models: {str(e)}")
+        return None, None
+
+# Load model and encoders
+model, encoders = load_model_and_encoders()
 
 # 2. Preprocessing function (applies same encoding as training)
 def preprocess_input(df: pd.DataFrame) -> pd.DataFrame:
@@ -21,9 +47,6 @@ def suggest_strategy(prob: float) -> str:
         return "⚠️ Giảm giá nhẹ hoặc khuyến mãi thêm dịch vụ"
     else:
         return "✅ Khách hàng ổn định, duy trì dịch vụ tốt"
-
-# 4. Streamlit page config
-st.set_page_config(page_title="AI Marketing Assistant", layout="centered")
 
 # 5. Title and divider
 st.title("🧠 AI Dự Đoán Khách Hàng Rời Dịch Vụ (Churn)")
